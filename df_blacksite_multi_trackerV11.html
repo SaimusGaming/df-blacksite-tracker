@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DeltaForce · Blacksite Tracker (niveles por sección)</title>
+<style>
+  :root{
+    --bg:#0b0f13; --panel:#11161c; --panel2:#0e141a; --muted:#9cb0c2; --text:#e7f0ff;
+    --brand:#00e887; --blue:#28c6ff; --border:#1f2730; --danger:#ff5c7a;
+    /* Colores de chips por sección (puedes diferenciarlos si quieres) */
+    --stash:#2dd36f; --firing:#2dd36f; --csd:#2dd36f; --cchq:#2dd36f;
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Roboto,Arial}
+  .container{max-width:1200px;margin:0 auto;padding:18px 14px 44px;position:relative}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
+        border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .pad{padding:14px}
+  .row{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:1000px){ .row{grid-template-columns:360px 1fr} }
+
+  /* Tabs */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#0e141a;cursor:pointer;color:var(--muted)}
+  .tab.active{color:var(--text);border-color:rgba(40,198,255,.5);box-shadow:0 0 0 2px rgba(40,198,255,.15) inset}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .level{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .level header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(255,255,255,.02);gap:10px;flex-wrap:wrap}
+  .badge{background:#0d141a;border:1px solid var(--border);padding:4px 8px;border-radius:999px;font-size:12px;color:var(--muted)}
+  .badge.site{color:#0b0f13;font-weight:800}
+
+  .reqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:12px}
+  .item{position:relative;background:linear-gradient(180deg,#0b1117,#0b0f13);border:1px solid var(--border);border-radius:12px;padding:10px;cursor:pointer}
+  .item:hover{border-color:#2a3949}
+  .item .name{font-size:13px}
+  .item .hint{color:var(--muted);font-size:12px}
+  .item .count{font-weight:800;font-size:18px}
+  .item.complete{border-color:rgba(0,232,135,.7);box-shadow:0 0 0 2px rgba(0,232,135,.22) inset}
+  /* parcial: algo gastado pero aún quedan faltantes */
+  .item.partial{border-color:rgba(40,198,255,.7);box-shadow:0 0 0 2px rgba(40,198,255,.22) inset}
+  .chip{position:absolute;top:8px;right:8px;border:1px solid var(--border);border-radius:8px;padding:2px 6px;font-size:11px;color:var(--muted);background:#0f151c}
+
+  /* Imagen del ítem (sin rombos/overlays) */
+  .imgwrap{
+    width:64px;height:64px;border-radius:10px;background:#0d141a;border:1px dashed var(--border);
+    margin-right:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .imgwrap img{
+    max-width:100%; max-height:100%; object-fit:contain; display:block;
+  }
+
+  .flex{display:flex;align-items:center;gap:10px}
+  .controls{display:flex;flex-direction:column;gap:10px}
+  .ctl{display:flex;align-items:center;gap:8px;background:#0e141a;border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+  .ctl label{color:var(--muted)}
+  .ctl input[type="number"]{width:84px;background:#0a0f14;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 8px}
+  .btn{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:linear-gradient(180deg,#0f1720,#0c141a);color:var(--text);cursor:pointer}
+  .btn.brand{background:linear-gradient(180deg,rgba(0,232,135,.12),rgba(0,232,135,.06));border-color:rgba(0,232,135,.4)}
+  .btn.ghost{background:transparent}
+  .btn.danger{background:linear-gradient(180deg,rgba(255,92,122,.12),rgba(255,92,122,.06));border-color:rgba(255,92,122,.4)}
+  .muted{color:var(--muted);font-size:12px}
+    /* ===== Twitch CTA (todo clicable) ===== */
+  .follow-cta{
+    position:absolute; top:14px; right:14px; z-index:2;
+    display:flex; align-items:center; gap:10px;
+    padding:8px 12px; border:1px solid var(--border); border-radius:12px;
+    background:linear-gradient(180deg,#151b22,#10161d); color:var(--text);
+    text-decoration:none;
+  }
+  .follow-cta:hover{border-color:rgba(40,198,255,.5); box-shadow:0 0 0 2px rgba(40,198,255,.15) inset}
+  .follow-cta .tw{width:22px;height:22px;flex:0 0 auto;display:block}
+  .follow-cta .txt{display:flex;flex-direction:column;line-height:1.15}
+  .follow-cta .txt b{font-weight:800}
+  .follow-cta .en{font-size:11px;color:var(--muted);letter-spacing:.3px;text-transform:uppercase}
+  @media (max-width:640px){
+    .follow-cta{right:10px;left:auto;padding:6px 10px}
+    .follow-cta .en{display:none}
+  }
+
+</style>
+</head>
+<body>
+<div class="container">
+      <!-- CTA Twitch · todo el bloque es clicable -->
+  <a class="follow-cta" href="https://twitch.tv/saimusgaming" target="_blank" rel="noopener">
+    <!-- Icono Twitch (SVG inline) -->
+    <svg class="tw" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="#9146FF" d="M4.265 3 2 6.118v12.143h4.586V22l3.023-3.739h3.86L22 13.03V3H4.265Zm15.27 8.738-3.316 2.699h-3.86l-2.017 2.492v-2.492H6.586V4.805h12.949v6.933Z"/>
+      <path fill="#9146FF" d="M17.403 6.963h-1.836v4.591h1.836V6.963Zm-4.507 0H11.06v4.591h1.836V6.963Z"/>
+    </svg>
+    <div class="txt">
+      <span>Dame las gracias con tu <b>FOLLOW</b> — <b>SaimusGaming</b></span>
+      <span class="en">THANK ME WITH YOUR <b>FOLLOW</b> — <b>SAIMUSGAMING</b></span>
+    </div>
+  </a>
+  <h1 style="margin:0 0 2px;font-weight:800;letter-spacing:.2px">Blacksite Upgrade Tracker</h1>
+  <div class="muted">Clic en los objetos para restar. <b>Token</b> solo alterna completado / sin completar.</div>
+
+  <div class="row">
+    <!-- CONTROLES -->
+    <div class="card pad">
+      <h3 style="margin:4px 0 10px">Mi progreso</h3>
+      <div class="controls">
+        <div class="ctl" style="justify-content:space-between;flex-wrap:wrap">
+          <label>Secciones</label>
+          <div class="tabs" id="tabs"></div>
+        </div>
+
+        <!-- Filtros por nivel actual -->
+        <div class="ctl"><label style="min-width:160px">Nivel actual · Stash</label><input id="lvl-Stash" type="number" min="1" value="1"></div>
+        <div class="ctl"><label style="min-width:160px">Nivel actual · CC HQ</label><input id="lvl-CC HQ" type="number" min="1" value="1"></div>
+        <div class="ctl"><label style="min-width:160px">Nivel actual · CSD Center</label><input id="lvl-CSD Center" type="number" min="0" value="0"></div>
+        <div class="ctl"><label style="min-width:160px">Nivel actual · Firing Range</label><input id="lvl-Firing Range" type="number" min="0" value="0"></div>
+
+        <div class="ctl">
+          <input id="onlyMissing" type="checkbox" checked>
+          <label for="onlyMissing">Mostrar solo niveles superiores a mi nivel de sección</label>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn brand" id="saveBtn">Guardar</button>
+          <button class="btn ghost" id="resetCounts">Reiniciar contadores</button>
+          <button class="btn danger" id="clearAll">Borrar guardado</button>
+          <button class="btn" id="exportBtn">Exportar JSON</button>
+          <label class="btn"><input id="importFile" type="file" accept="application/json" style="display:none">Importar JSON</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTA -->
+    <div id="content" class="grid"></div>
+  </div>
+</div>
+
+<script>
+/* ================== IMAGEN TOKEN ================== */
+const TOKEN_IMG = "data:image/png;base64,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";
+
+/* helper para token compacto */
+const T = (qty, compact) => ({name:"Token", qty, token:true, compact, imgUrl:TOKEN_IMG});
+
+/* =================== DATA =================== */
+/* — mismo contenido; incluí dos items con q:"01"/"06" pero ya no se usa — */
+const DATA = [
+  /* ---------- STASH ---------- */
+  {site:"Stash", unlockLevel:1, unlocks:"+18 Stash Space · +1 Stash Expansion Crate Slot", items:[
+    {name:"Medical UAV", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15090010041.png"},
+    {name:"Intel Recorder", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050096.png"},
+    {name:"Relay", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020050008.png"},
+    T(5000,"5K")
+  ]},
+  {site:"Stash", unlockLevel:4, unlocks:"+2 Stash Expansion Crate Slots", items:[
+    {name:"Wide-Angle Lens", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050037.png"},
+    {name:"Bucket of Paint", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010016.png"},
+    {name:"Socket Adapter", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15040010022.png"},
+    {name:"Wooden Carved Pipe", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050075.png"},
+    T(10000,"10K")
+  ]},
+  {site:"Stash", unlockLevel:9, unlocks:"+45 Stash Space · +3 Stash Expansion Crate Slots", items:[
+    {name:"Wide-Angle Lens", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050037.png"},
+    {name:"Encrypted Router", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050045.png"},
+    {name:"Lemon Tea", qty:4, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060080005.png"},
+    {name:"Relay", qty:6, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020050008.png"},
+    T(20000,"20K")
+  ]},
+  {site:"Stash", unlockLevel:14, unlocks:"+4 Stash Expansion Crate Slots", items:[
+    {name:"Merit Medal", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050004.png"},
+    {name:"Oximeter", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060040003.png"},
+    {name:"Encrypted Router", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050045.png"},
+    {name:"SSD", qty:6, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040005.png"},
+    T(40000,"40K")
+  ]},
+  {site:"Stash", unlockLevel:28, unlocks:"+72 Stash Space · +5 Stash Expansion Crate Slots", items:[
+    {name:"Mantel Clock", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050083.png"},
+    {name:"High-Speed SSD", qty:4, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050090.png"},
+    {name:"ASOS Motherboard", qty:6, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040007.png"},
+    {name:"RAM", qty:10, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040006.png"},
+    T(80000,"80K")
+  ]},
+  {site:"Stash", unlockLevel:36, unlocks:"+6 Stash Expansion Crate Slots", items:[
+    {name:"Array Server", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050062.png"},
+    {name:"Military Satellite Communication Device", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050033.png"},
+    {name:"Wide-Angle Lens", qty:10, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050037.png"},
+    {name:"SSD", qty:10, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040005.png"},
+    T(160000,"160K")
+  ]},
+  {site:"Stash", unlockLevel:42, unlocks:"+108 Stash Space · +7 Stash Expansion Crate Slots", items:[
+    {name:"Rocket Fuel", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010033.png"},
+    {name:"Golden Gazelle", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15010050001.png"},
+    {name:"999.9 Gold Bar", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050010.png"},
+    {name:"Military Trajectory Computer", qty:5, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050089.png"},
+    T(320000,"320K")
+  ]},
+  {site:"Stash", unlockLevel:52, unlocks:"+8 Stash Expansion Crate Slots", items:[
+    {name:"Medical Ventilator", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050097.png"},
+    {name:"Reinforced Carbon Fiberboard", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010031.png"},
+    {name:"High-Speed Disk Array", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050012.png"},
+    {name:"High-Power Vacuum Cleaner", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050067.png"},
+    T(640000,"640K")
+  ]},
+  {site:"Stash", unlockLevel:60, unlocks:"+144 Stash Space · +9 Stash Expansion Crate Slots", items:[
+    {name:"Heart of Africa", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050006.png"},
+    {name:"Olivia Champagne", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060080015.png"},
+    {name:"Oximeter", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060040003.png"},
+    T(1300000,"1.3M")
+  ]},
+
+  /* ---------- FIRING RANGE ---------- */
+  {site:"Firing Range", unlockLevel:18, unlocks:"+3% Max Load", items:[
+    {name:"Mocha Coffee Pot", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050072.png"},
+    {name:"Socket Adapter", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15040010022.png"},
+    {name:"Relay", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020050008.png"},
+    T(3500,"3.5K")
+  ]},
+  {site:"Firing Range", unlockLevel:26, unlocks:"+6% Max Load · Unlocks Intermediate Repair", items:[
+    {name:"Military Thermal Imaging Device", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050036.png"},
+    {name:"LCD Screen", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040010.png"},
+    {name:"Mocha Coffee Pot", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050072.png"},
+    T(7000,"7K")
+  ]},
+  {site:"Firing Range", unlockLevel:34, unlocks:"+9% Max Load", items:[
+    {name:"Wide-Angle Lens", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050037.png"},
+    {name:"RAM", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040006.png"},
+    {name:"Intel Recorder", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050096.png"},
+    T(14000,"14K")
+  ]},
+  {site:"Firing Range", unlockLevel:40, unlocks:"+12% Max Load", items:[
+    {name:"Coffee", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060080014.png"},
+    {name:"Oximeter", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060040003.png"},
+    {name:"Blood Pressure Meter", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060040002.png"},
+    {name:"Gas Tank", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010037.png"},
+    T(28000,"28K")
+  ]},
+  {site:"Firing Range", unlockLevel:48, unlocks:"+15% Max Load", items:[
+    {name:"SLR Camera", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050034.png"},
+    {name:"Lens", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040001.png"},
+    {name:"Cell Phone", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040013.png"},
+    {name:"Intel Recorder", qty:6, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050096.png"},
+    T(56000,"56K")
+  ]},
+  {site:"Firing Range", unlockLevel:54, unlocks:"+20% Max Load", items:[
+    {name:"Smoothbore Gun Exhibit", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050003.png"},
+    {name:"Military Satellite Communication Device", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050033.png"},
+    {name:"CPU", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040003.png"},
+    {name:"Pack of Cement", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010015.png"},
+    T(112000,"112K")
+  ]},
+  {site:"Firing Range", unlockLevel:58, unlocks:"+25% Max Load", items:[
+    {name:"Flight Recorder", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050014.png"},
+    {name:"Military Radio", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050004.png"},
+    {name:"Military Satellite Communication Device", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050033.png"},
+    T(224000,"224K")
+  ]},
+
+  /* ---------- CSD CENTER ---------- */
+  {site:"CSD Center", unlockLevel:16, unlocks:"+1% Downed MSPD · +5 Max Stamina · +5% Stamina Recovery", items:[
+    {name:"Solar Panel", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050016.png"},
+    {name:"Delta Force: Task Force Dagger", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050027.png"},
+    {name:"Mocha Coffee Pot", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050072.png"},
+    {name:"Socket Adapter", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15040010022.png"},
+    T(4000,"4K")
+  ]},
+  {site:"CSD Center", unlockLevel:24, unlocks:"+10 Max Stamina · +10% Stamina Recovery", items:[
+    {name:"Wide-Angle Lens", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050037.png"},
+    {name:"HiFi Sound Card", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050005.png"},
+    {name:"Intel Recorder", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050096.png"},
+    T(8000,"8K")
+  ]},
+  {site:"CSD Center", unlockLevel:32, unlocks:"+3% Downed MSPD · +16 Max Stamina · +16% Stamina Recovery", items:[
+    {name:"Coffee", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060080014.png"},
+    {name:"Cell Phone", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040013.png"},
+    {name:"Gold Crest", qty:5, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050018.png"},
+    T(16000,"16K")
+  ]},
+  {site:"CSD Center", unlockLevel:38, unlocks:"+22 Max Stamina · +22% Stamina Recovery", items:[
+    {name:"Military Explosive", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050019.png"},
+    {name:"Digital Camera", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050006.png"},
+    {name:"Bone Saw", qty:5, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050065.png"},
+    T(32000,"32K")
+  ]},
+  {site:"CSD Center", unlockLevel:46, unlocks:"+6% Downed MSPD · +30 Max Stamina · +30% Stamina Recovery", items:[
+    {name:"Fuel Cell", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020010036.png"},
+    {name:"Military Binoculars", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050035.png"},
+    {name:"Ceremony Dagger", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050043.png"},
+    T(64000,"64K")
+  ]},
+  {site:"CSD Center", unlockLevel:50, unlocks:"+38 Max Stamina · +38% Stamina Recovery", items:[
+    {name:"Ventilator", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15060040004.png"},
+    {name:"Graphics Card", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050001.png"},
+    {name:"Pure Gold Lighter", qty:4, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050002.png"},
+    {name:"EV Battery", qty:7, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15040040007.png"},
+    T(128000,"128K")
+  ]},
+  {site:"CSD Center", unlockLevel:56, unlocks:"+10% Downed MSPD · +50 Max Stamina · +50% Stamina Recovery", items:[
+    {name:"Laptop", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050007.png"},
+    {name:"G.T.I. SATCOM Antenna", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050013.png"},
+    {name:"Ahsarah Specialty Wine Glass", qty:10, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050015.png"},
+    {name:"Military Explosive", qty:7, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050019.png"},
+    T(256000,"256K")
+  ]},
+
+  /* ---------- CC HQ ---------- */
+  {site:"CC HQ", unlockLevel:1, unlocks:"+1% Operations EXP · +2 Auction House Pending Order Slots", items:[
+    {name:"Data: Military Intel", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15070050002.png"},
+    {name:"Relay", qty:3, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15020050008.png"},
+    T(3000,"3K")
+  ]},
+  {site:"CC HQ", unlockLevel:7, unlocks:"+4 Auction House Pending Order Slots", items:[
+    {name:"RAM", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040006.png"},
+    {name:"Medical UAV", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15090010041.png"},
+    {name:"LCD Screen", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040010.png"},
+    T(6000,"6K")
+  ]},
+  {site:"CC HQ", unlockLevel:12, unlocks:"+2% Operations EXP · +6 Auction House Pending Order Slots", items:[
+    {name:"ASOS Motherboard", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040007.png"},
+    {name:"GS5 Controller", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050011.png"},
+    {name:"Spy Pen", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15040010015.png"},
+    T(12000,"12K")
+  ]},
+  {site:"CC HQ", unlockLevel:30, unlocks:"+8 Auction House Pending Order Slots", items:[
+    {name:"SLR Camera", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050034.png"},
+    {name:"Digital Camera", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030050006.png"},
+    {name:"Encrypted Router", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050045.png"},
+    T(24000,"24K")
+  ]},
+  {site:"CC HQ", unlockLevel:44, unlocks:"+4% Operations EXP · +10 Auction House Pending Order Slots", items:[
+    {name:"Quantum Storage", qty:1, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15070050001.png"},
+    {name:"Merit Medal", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15080050004.png"},
+    {name:"SSD", qty:2, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040005.png"},
+    {name:"Radio", qty:4, imgUrl:"https://deltaforcewiki.vasdgame.com/playerhub/40001/object/15030040012.png"},
+    T(48000,"48K")
+  ]}
+];
+
+/* ====== construir filas con índice de nivel ====== */
+function buildRows(){
+  const grouped = {};
+  DATA.forEach(r => { (grouped[r.site] ||= []).push(r); });
+  const rows = [];
+  for(const site of Object.keys(grouped)){
+    grouped[site].sort((a,b)=>a.unlockLevel-b.unlockLevel);
+    grouped[site].forEach((r, idx) => {
+      rows.push({
+        site,
+        unlockLevel: r.unlockLevel,
+        idx: idx + (site==='Stash' || site==='CC HQ' ? 2 : 1), // Stash/CC HQ empiezan en 2
+        unlocks: r.unlocks,
+        items: r.items.map(it => ({...it, remaining: it.qty}))
+      });
+    });
+  }
+  return rows;
+}
+
+/* ================== ESTADO ================== */
+const STATE_KEY = "df-section-levels-v2";
+function loadState(){ try{ return JSON.parse(localStorage.getItem(STATE_KEY)) || null; }catch{ return null; } }
+function saveState(st){ localStorage.setItem(STATE_KEY, JSON.stringify(st)); }
+
+function hydrate(){
+  const base = buildRows();
+  const saved = loadState();
+  if(saved){
+    base.forEach(r => r.items.forEach(it => {
+      const k = keyFor(r,it);
+      if(saved.remaining && saved.remaining[k]!==undefined) it.remaining = saved.remaining[k];
+    }));
+  }
+  const levels = saved?.levels || {'Stash':1,'Firing Range':0,'CSD Center':0,'CC HQ':1}; // Stash/CC HQ arrancan en 1
+  const tab = saved?.tab || 'TODO';
+  return { rows: base, levels, tab };
+}
+function keyFor(r, it){ return `${r.site}|${r.idx}|${it.name}`; }
+
+// Prioridad para gastar/recuperar desde Totality Inv
+const SITE_PRIORITY = {'Stash':0,'CC HQ':1,'CSD Center':2,'Firing Range':3};
+
+// Muestra "48K", "224K", "1.3M", etc. (útil para Token)
+function compactNumber(n){
+  if(n>=1_000_000) return (Math.round(n/100_000)/10)+'M';
+  if(n>=1_000) return Math.round(n/1000)+'K';
+  return String(n);
+}
+
+/**
+ * Construye el resumen de faltantes.
+ * - Respeta el checkbox "Mostrar solo niveles superiores…"
+ * - Agrupa por (nombre + img) y acumula el remaining
+ * - Mantiene refs a los ítems reales para poder restar/sumar al pinchar
+ */
+function buildTotals({onlyAboveLevel=true}={}){
+  const map = new Map(); // key = name|img
+
+  for(const r of app.rows){
+    if(onlyAboveLevel && r.idx <= (app.levels[r.site] ?? 0)) continue;
+
+    for(const it of r.items){
+      // Siempre registramos para poder calcular "consumed" (gastado)
+      const key = `${it.name}|${it.imgUrl||''}`;
+      if(!map.has(key)){
+        map.set(key, {
+          name: it.name,
+          imgUrl: it.imgUrl,
+          token: !!it.token,
+          total: 0,      // lo que FALTA
+          consumed: 0,   // lo que ya gastaste (qty - remaining)
+          refs: []       // {site, idx, item}
+        });
+      }
+      const entry = map.get(key);
+      entry.total += Math.max(0, it.remaining);
+      entry.consumed += Math.max(0, (it.qty ?? 0) - (it.remaining ?? 0));
+      entry.refs.push({ site:r.site, idx:r.idx, item: it });
+    }
+  }
+
+  // ordenar refs por prioridad de sitio y nivel ascendente
+  for(const entry of map.values()){
+    entry.refs.sort((a,b)=>{
+      const pa = SITE_PRIORITY[a.site], pb = SITE_PRIORITY[b.site];
+      if(pa!==pb) return pa-pb;
+      return a.idx - b.idx;
+    });
+  }
+
+  // ORDEN FINAL: SOLO por nombre (estable), así no se mueven al pinchar
+  return [...map.values()].sort((a,b)=> a.name.localeCompare(b.name));
+}
+
+let app = hydrate();
+
+/* ===== Helpers para exportar/importar ===== */
+function collectRemainingFromRows(rows){
+  const remaining = {};
+  for(const r of rows){ for(const it of r.items){ remaining[`${r.site}|${r.idx}|${it.name}`] = it.remaining; } }
+  return remaining;
+}
+
+function packStateForExport(){
+  return {
+    levels: app.levels,          // niveles actuales por sección
+    tab: app.tab,                // pestaña activa
+    remaining: collectRemainingFromRows(app.rows) // progreso de ítems
+  };
+}
+
+/* Acepta tanto el formato “compacto” {levels, tab, remaining}
+   como el “legado” que tenía un array grande con rows+items. */
+function applyImportedState(data){
+  let { levels, tab, remaining } = data;
+
+  // Si viene en formato legado con "rows", lo convertimos a remaining
+  if(!remaining && Array.isArray(data.rows)){
+    remaining = {};
+    data.rows.forEach(r => (r.items||[]).forEach(it => {
+      remaining[`${r.site}|${r.idx}|${it.name}`] = (it.remaining ?? it.qty);
+    }));
+  }
+
+  // Aplicar remaining al modelo actual
+  if(remaining){
+    for(const r of app.rows){
+      for(const it of r.items){
+        const k = keyFor(r,it);
+        if(remaining[k] !== undefined) it.remaining = remaining[k];
+      }
+    }
+  }
+
+  // Aplicar niveles y tab si existen
+  if(levels) app.levels = { ...app.levels, ...levels };
+  if(tab)    app.tab    = tab;
+}
+
+/* ================== RENDER ================== */
+const contentEl = document.getElementById("content");
+const onlyMissingEl = document.getElementById("onlyMissing");
+const SITES = ['TODO','Stash','CC HQ','CSD Center','Firing Range','Totality Inv'];
+const SITE_ORDER = {'Stash':0,'CC HQ':1,'CSD Center':2,'Firing Range':3};
+
+function renderTabs(){
+  const tabsEl = document.getElementById("tabs");
+  tabsEl.innerHTML = "";
+  SITES.forEach(name => {
+    const b = document.createElement("button");
+    b.className = "tab" + (name===app.tab ? " active": "");
+    b.textContent = name;
+    b.addEventListener("click", () => { app.tab = name; persist(); render(); });
+    tabsEl.appendChild(b);
+  });
+}
+
+const SITE_BG = {
+  "Stash":"var(--stash)",
+  "Firing Range":"var(--firing)",
+  "CSD Center":"var(--csd)",
+  "CC HQ":"var(--cchq)"
+};
+
+function render(){
+  renderTabs();
+
+  for(const s of ['Stash','Firing Range','CSD Center','CC HQ']){
+    const el = document.getElementById('lvl-'+s);
+    el.value = app.levels[s] ?? (s==='Stash'||s==='CC HQ'?1:0);
+  }
+
+  const onlyMissing = onlyMissingEl.checked;
+  const activeSites = app.tab==='TODO' ? ['Stash','CC HQ','CSD Center','Firing Range'] : [app.tab];
+// ===================== TOTALITY INV =====================
+if(app.tab === 'Totality Inv'){
+  // Oculta objetos que ya no faltan (total==0)
+  const list = buildTotals({ onlyAboveLevel: onlyMissing }).filter(e => e.total > 0);
+
+  contentEl.innerHTML = "";
+  const box = document.createElement("div");
+  box.className = "level card";
+
+  const header = document.createElement("header");
+  header.innerHTML = `
+    <div class="left" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span class="badge site" style="background:var(--brand)">Totality Inv</span>
+      <span class="muted">Clic = gastar 1 · Shift+clic = devolver 1 (Stash→CCHQ→CSD→Firing)</span>
+    </div>
+    <div class="right"><span class="badge">${list.length} tipos de objetos</span></div>
+  `;
+  box.appendChild(header);
+
+  const reqs = document.createElement("div");
+  reqs.className = "reqs";
+
+  if(list.length===0){
+    const empty = document.createElement("div");
+    empty.className = "card pad";
+    empty.innerHTML = '<div class="muted">No hay objetos pendientes por encima de tus niveles actuales 🎉</div>';
+    contentEl.appendChild(empty);
+    return;
+  }
+
+  for(const entry of list){
+    const img = entry.imgUrl
+      ? `<div class="imgwrap"><img src="${entry.imgUrl}" alt=""></div>`
+      : `<div class="imgwrap"></div>`;
+
+    const displayCount = entry.token ? compactNumber(entry.total) : entry.total;
+
+    const card = document.createElement("div");
+    // parcial = algo gastado pero aún faltan: consumed>0 && total>0
+    const isPartial = (entry.consumed > 0 && entry.total > 0);
+    card.className = "item" + (isPartial ? " partial" : "");
+    card.innerHTML = `
+      <div class="chip">Faltan: ${entry.total}</div>
+      <div class="flex">
+        ${img}
+        <div>
+          <div class="count">${displayCount}×</div>
+          <div class="name">${entry.name}</div>
+          <div class="hint">${isPartial ? 'Parcial · ' : ''}Clic gasta 1 · Shift+clic devuelve 1</div>
+        </div>
+      </div>
+    `;
+
+    // Clic: gasta 1 en orden Stash→Firing→CSD→CCHQ
+    // Shift+clic: devuelve 1 en orden inverso
+    card.addEventListener('click', (ev) => {
+      if(ev.shiftKey){
+        // devolver 1 (busca ref con remaining < qty, desde el final)
+        for(let i = entry.refs.length - 1; i >= 0; i--){
+          const ref = entry.refs[i];
+          const it = ref.item;
+          if(it.remaining < it.qty){
+            it.remaining += 1;
+            entry.total -= 1; // baja el faltante global mostrado
+            persist();
+            render();
+            return;
+          }
+        }
+      }else{
+        // gastar 1 (busca ref con remaining > 0, desde el inicio por prioridad)
+        for(const ref of entry.refs){
+          const it = ref.item;
+          if(it.remaining > 0){
+            it.remaining -= 1;
+            entry.total -= 1;
+            persist();
+            render();
+            return;
+          }
+        }
+      }
+    });
+
+    reqs.appendChild(card);
+  }
+
+  box.appendChild(reqs);
+  contentEl.appendChild(box);
+  return; // no seguir con el render normal
+}
+// =================== FIN TOTALITY INV ===================
+
+
+  const rows = app.rows
+    .filter(r => activeSites.includes(r.site))
+    .filter(r => !onlyMissing || r.idx > (app.levels[r.site] ?? 0))
+    .sort((a,b)=> (a.site===b.site ? a.idx-b.idx : SITE_ORDER[a.site]-SITE_ORDER[b.site]));
+
+  contentEl.innerHTML = "";
+  if(rows.length===0){
+    const d = document.createElement("div");
+    d.className = "card pad";
+    d.innerHTML = '<div class="muted">Nada que mostrar. Ajusta el filtro o sube niveles 😉</div>';
+    contentEl.appendChild(d);
+    return;
+  }
+
+  for(const row of rows){
+    const box = document.createElement("div");
+    box.className = "level card";
+
+    const done = row.items.filter(i => i.remaining===0).length;
+    const header = document.createElement("header");
+    const bg = SITE_BG[row.site] || "var(--brand)";
+    header.innerHTML = `
+      <div class="left" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span class="badge site" style="background:${bg}">${row.site}</span>
+        <span class="badge">Nivel ${row.idx}</span>
+        <span class="badge" title="Nivel de personaje donde se desbloquea">🔓 Lvl ${row.unlockLevel}</span>
+        <span class="muted" style="margin-left:2px">${done===row.items.length? '✅ Requisitos completos' : `⏳ Faltan ${row.items.length-done} ítems`}</span>
+      </div>
+      <div class="right"><span class="badge">${row.unlocks||''}</span></div>
+    `;
+    box.appendChild(header);
+
+    const reqs = document.createElement("div"); reqs.className = "reqs";
+    // ordenar alfabéticamente por nombre para que no cambien de sitio al pinchar
+    const itemsByName = [...row.items].sort((a,b)=> a.name.localeCompare(b.name));
+    for(const it of itemsByName){
+      const item = document.createElement("div");
+      // estado visual: verde (complete) o azul (partial)
+      const stateClass = (it.remaining === 0) ? " complete" : (it.remaining < it.qty ? " partial" : "");
+      item.className = "item" + stateClass;
+      const qSpan = it.q ? `<span class="img_levelicon img_levelicon_${it.q} qmark"></span>` : "";
+      const img = it.imgUrl
+        ? `<div class="imgwrap">${qSpan}<img src="${it.imgUrl}" alt=""></div>`
+        : `<div class="imgwrap">${qSpan}</div>`;
+      const hint = it.token
+        ? 'Token: clic = alternar'
+        : ((it.remaining > 0 && it.remaining < it.qty) ? 'Parcial · clic resta · shift+clic suma' : 'clic resta · shift+clic suma');
+      item.innerHTML = `
+        <div class="chip">${it.remaining===0? 'Listo' : 'Faltan: '+it.remaining}</div>
+        <div class="flex">
+          ${img}
+          <div>
+            <div class="count">${it.token && it.compact ? it.compact : it.qty}×</div>
+            <div class="name">${it.name}</div>
+            <div class="hint">${hint}</div>
+          </div>
+        </div>
+      `;
+      item.addEventListener("click", (e) => {
+        if(it.token){
+          it.remaining = it.remaining===0 ? it.qty : 0;           // alterna
+        }else{
+          if(e.shiftKey) it.remaining = Math.min(it.qty, it.remaining+1); // suma
+          else { it.remaining = it.remaining-1; if(it.remaining<0) it.remaining = it.qty; } // resta / ciclo
+        }
+        persist(); render();
+      });
+      reqs.appendChild(item);
+    }
+    box.appendChild(reqs);
+    contentEl.appendChild(box);
+  }
+}
+
+function persist(){
+  const levels = {
+    "Stash": Number(document.getElementById("lvl-Stash").value || 1),
+    "Firing Range": Number(document.getElementById("lvl-Firing Range").value || 0),
+    "CSD Center": Number(document.getElementById("lvl-CSD Center").value || 0),
+    "CC HQ": Number(document.getElementById("lvl-CC HQ").value || 1)
+  };
+  app.levels = levels;
+
+  const remaining = {};
+  for(const r of app.rows){ for(const it of r.items){ remaining[keyFor(r,it)] = it.remaining; } }
+  saveState({ remaining, levels, tab: app.tab });
+}
+
+/* Inputs */
+["lvl-Stash","lvl-Firing Range","lvl-CSD Center","lvl-CC HQ"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", ()=>{ persist(); render(); });
+});
+document.getElementById("onlyMissing").addEventListener("change", ()=> render());
+
+/* Buttons */
+document.getElementById("saveBtn").addEventListener("click", persist);
+document.getElementById("resetCounts").addEventListener("click", ()=>{
+  for(const r of app.rows){ for(const it of r.items){ it.remaining = it.qty; } }
+  persist(); render();
+});
+document.getElementById("clearAll").addEventListener("click", ()=>{
+  if(confirm("¿Borrar todo el guardado local?")){ localStorage.removeItem(STATE_KEY); app = hydrate(); render(); }
+});
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const data = packStateForExport();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "deltaforce-section-levels.json"; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("importFile").addEventListener("change",(e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader(); r.onload = ()=>{
+    try{
+      const data = JSON.parse(r.result);
+      applyImportedState(data); // remaining + niveles + tab
+      render();                 // sincroniza inputs con app.levels
+      persist();                // guarda en localStorage con el formato actual
+    }catch(err){
+      alert("No se pudo importar: "+err.message);
+    }
+  };
+  r.readAsText(f);
+});
+
+/* Render inicial */
+render();
+</script>
+</body>
+</html>
